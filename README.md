@@ -4,4 +4,4 @@ https://www.kaggle.com/code/vinayak123tyagi/damage-propagation-modeling-for-airc
 
 https://www.mdpi.com/2076-0825/11/3/67 
 
-해당 kaggle 에서 데이터셋을 참조해서 페이지를 구성해보았습니다..
+해당 kaggle 에서 데이터셋을 참조해서 flask 프레임워크, javascripts를 이용해서 페이지를 구성해보았습니다..
