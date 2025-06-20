@@ -1,0 +1,41 @@
+{# templates/schedule.html #}
+{% extends "layout.html" %}
+
+{% block body %}
+  <h2 class="my-4 text-center">Scheduler</h2>
+  <div id="calendar" style="max-width:900px; margin:0 auto; height:700px;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const initialEvents = {{ events|tojson }};
+
+    var calendarEl = document.getElementById('calendar');
+    var calendar   = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      events: initialEvents,
+      selectable: true,
+      select: function(info) {
+        var title = prompt('일정 제목을 입력하세요:');
+        if (title) {
+          var newEvent = { title, start: info.startStr, end: info.endStr };
+          calendar.addEvent(newEvent);
+          fetch('/schedule/create', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(newEvent)
+          });
+        }
+        calendar.unselect();
+      }
+    });
+    calendar.render();
+  });
+</script>
+{% endblock %}

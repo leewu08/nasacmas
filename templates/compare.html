@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block body %}
+<h2>Prediction vs Actual</h2>
+<div id="scatter-plot" style="height:400px;"></div>
+<div id="heatmap-plot" style="height:400px; margin-top:20px;"></div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const scatter = {{ scatter_data|safe }},
+        heatmap = {{ heatmap_data|safe }};
+  Plotly.newPlot('scatter-plot',[
+    { x:scatter.map(r=>r.y_true), y:scatter.map(r=>r.y_pred), mode:'markers' },
+    { x:[0,350], y:[0,350], mode:'lines', line:{dash:'dash'} }
+  ],{xaxis:{title:'True RUL'}, yaxis:{title:'Pred RUL'}});
+  Plotly.newPlot('heatmap-plot',[{
+    x: heatmap.map(r=>r[0]),
+    y: ['MAE'],
+    z: [heatmap.map(r=>r[1])],
+    type:'heatmap', colorscale:'RdBu'
+  }],{yaxis:{showticklabels:false}});
+</script>
+{% endblock %}

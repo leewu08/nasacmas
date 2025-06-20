@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<h2>Sensor Trends & Anomalies (FD={{ fd }}, Unit={{ unit }})</h2>
+<div class="mb-3">
+  <label for="unit-select" class="form-label">Select Unit:</label>
+  <select id="unit-select" class="form-select" onchange="onUnitChange()">
+    {% for u in units %}
+    <option value="{{ u }}" {% if u==unit %}selected{% endif %}>Unit {{ u }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="row mb-3">
+  <div class="col-md-6">
+    <label for="sensor-select" class="form-label">Select Sensors:</label>
+    <select id="sensor-select" class="form-select" multiple size="5" onchange="renderChart()">
+      <!-- 옵션은 스크립트에서 동적으로 생성 -->
+    </select>
+  </div>
+</div>
+<div id="sensor-chart" style="height: 500px;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const fd   = {{ fd }},
+        unit = {{ unit }};
+
+  function onUnitChange() {
+    const sel = document.getElementById('unit-select');
+    const newUnit = sel.value;
+    window.location.href = `/sensors/view?fd=${fd}&unit=${newUnit}`;
+  }
+
+  // 렌더링 함수: 선택된 센서만 차트에 그림
+  function renderChart(data) {
+    const sel = document.getElementById('sensor-select');
+    const selected = Array.from(sel.selectedOptions).map(o => o.value);
+    const times = window.sensorData.time;
+    const values = window.sensorData.values;
+    const traces = selected.map(name => ({
+      x: times,
+      y: values[name],
+      name: name,
+      mode: 'lines'
+    }));
+    const layout = {
+      title: `FD${fd} Unit ${unit} Sensor Trends`,
+      xaxis: { title: 'Time' },
+      yaxis: { title: 'Sensor Value' },
+      height: 500
+    };
+    Plotly.newPlot('sensor-chart', traces, layout);
+  }
+
+  // 데이터 로드 및 초기화
+  fetch(`/sensors?fd=${fd}&unit=${unit}`)
+    .then(res => res.json())
+    .then(data => {
+      window.sensorData = data;
+      const sel = document.getElementById('sensor-select');
+      Object.keys(data.values).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        opt.selected = true;
+        sel.appendChild(opt);
+      });
+      renderChart();
+    })
+    .catch(err => {
+      console.error('센서 데이터 로드 오류:', err);
+      document.getElementById('sensor-chart').innerText = '데이터 로드 실패';
+    });
+</script>
+{% endblock %}
