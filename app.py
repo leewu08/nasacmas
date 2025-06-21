@@ -17,7 +17,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pdfkit
+import joblib  # 또는 import pickle
 
+model = joblib.load(r'C:\Users\temp\nasa_cmas\cmaps\flask\data\model.pkl')
 # ── 비즈니스 로직은 model.py에 위임 ──
 from model import (
     load_dataframes,
@@ -29,8 +31,12 @@ from model import (
     performance,
     shap_data,
     schedule_events,
-    get_all_unit_ids
+    get_all_unit_ids,
+    get_cluster_label,
+    get_cluster_map,
+    get_units_by_cluster
 )
+
 app = Flask(__name__)
 
 # ── 기본 디렉터리 설정 ──
@@ -42,17 +48,65 @@ os.makedirs(DATA_DIR, exist_ok=True)
 train_dfs, test_dfs = load_dataframes()
 
 # -----------------------------------------------------------------------------  
-# Route: Main Dashboard
 @app.route('/monitoring')
 def monitoring():
-    fd = int(request.args.get('fd', 1))
+    fd = int(request.args.get('fd', 1))  # 'fd' 값을 정수로 받음
+    selected_cluster = request.args.get('cluster', 'all')  # 클러스터 값, 기본은 'all'
+
+    # 'fd'에 맞는 클러스터 목록을 가져옵니다
+    clusters = get_cluster_map(fd)  # 새로운 'fd'에 맞는 클러스터 목록 가져오기
+    print(f"Clusters for FD{fd}: {clusters}")  # 디버깅: 클러스터 값 확인
+
+    # 데이터프레임에서 최신 데이터만 필터링
     df_te = test_dfs.get(fd, pd.DataFrame())
     latest = df_te.groupby('unit').last().reset_index()
+
+    # 클러스터 값이 'all'이 아니면 필터링
+    if selected_cluster != 'all':
+        try:
+            selected_cluster = int(selected_cluster)
+            # 선택된 클러스터에 해당하는 유닛만 필터링
+            units_in_cluster = get_units_by_cluster(fd, selected_cluster)
+            latest = latest[latest['unit'].isin(units_in_cluster)]
+        except ValueError as e:
+            print("Cluster 값 변환 오류:", e)
+        except Exception as e:
+            print("Cluster 필터링 오류:", e)
+
     return render_template(
-        'monitoring.html',  # 템플릿도 monitoring.html 로 변경
+        'monitoring.html',
         fd=fd,
-        units=latest.to_dict(orient='records')
+        selected_cluster=selected_cluster,
+        clusters=clusters,  # 클러스터 리스트 전달
+        units=latest.to_dict(orient='records'),
+        sensor_stats=sensor_stats.to_dict(orient='index')
     )
+
+
+
+# CSV 로드
+df = pd.read_csv(r'C:\Users\temp\nasa_cmas\cmaps\flask\data\train_FD001_cleaned.csv')
+
+# 주요 센서 피처 목록
+sensor_cols = [col for col in df.columns if col.startswith('s')]
+
+# 통계 추출
+sensor_stats = df[sensor_cols].describe().T[['min', 'mean', 'max']]
+print(sensor_stats)
+
+input_keys = ['op1', 'op2', 'op3'] + [f's{i}' for i in range(1, 22)]  # 총 24개
+
+@app.route('/predict_rul', methods=['POST'])
+def predict_rul():
+    data = request.get_json()
+    input_features = [data.get(k) for k in input_keys]
+    input_array = np.array(input_features).reshape(1, -1)
+
+    # 전처리 스케일링 (필요할 때만)
+    # input_array = scaler.transform(input_array)
+
+    predicted = model.predict(input_array)[0]
+    return jsonify({'rul': float(predicted)})
 
 # -----------------------------------------------------------------------------  
 # Route: Compare view

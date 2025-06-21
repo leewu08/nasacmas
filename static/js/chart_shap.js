@@ -1,4 +1,4 @@
-.document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   const listItems = document.querySelectorAll('#shapFeatureList li');
   listItems.forEach(item => {
     item.style.display = 'flex';

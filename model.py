@@ -190,3 +190,20 @@ def get_all_unit_ids():
             unit_set.add(evt['unit'])
 
     return sorted(unit_set)
+#------------------------클러스터연동----
+
+_cluster_path = os.path.join(DATA_DIR, 'cluster_labels.csv')
+_cluster_df = pd.read_csv(_cluster_path) if os.path.exists(_cluster_path) else pd.DataFrame()
+
+def get_cluster_label(unit_id, fd):
+    row = _cluster_df.query("unit == @unit_id and model == 'FD00{}'".format(fd))
+    return int(row['cluster'].iloc[0]) if not row.empty else None
+def get_cluster_map(fd):
+    df = _cluster_df.query("model == 'FD00{}'".format(fd))
+    clusters = df['cluster'].unique().tolist()  # 클러스터 값을 리스트 형태로 반환
+    return clusters
+
+def get_units_by_cluster(fd, cluster_id):
+    model_id = f"FD00{fd}"
+    df = _cluster_df.query("`model` == @model_id and `cluster` == @cluster_id")
+    return df['unit'].tolist()

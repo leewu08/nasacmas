@@ -3,19 +3,34 @@
 {% block head_extra %}
   <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 {% endblock %}
 
 {% block body %}
 <div class="d-flex align-items-center mb-4">
   <h2 class="me-auto">🩺 Real-time RUL Monitoring (FD00{{ fd }})</h2>
-  <div>
-    <label for="fd-select" class="form-label me-2">Scenario:</label>
-    <select id="fd-select" class="form-select d-inline-block w-auto">
+
+  <!-- 시나리오와 클러스터를 한 폼에 묶습니다 -->
+  <form method="get" action="{{ url_for('monitoring') }}" class="d-flex gap-3">
+    <label for="fd-select" class="form-label me-1">Scenario:</label>
+    <select id="fd-select" name="fd" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
       {% for i in [1,2,3,4] %}
-        <option value="{{ i }}" {% if i==fd %}selected{% endif %}>FD00{{ i }}</option>
+        <option value="{{ i }}" {% if i == fd %}selected{% endif %}>FD00{{ i }}</option>
       {% endfor %}
     </select>
-  </div>
+
+    <label for="cluster-select" class="form-label me-1">Cluster:</label>
+    <select id="cluster-select" name="cluster" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+      <!-- 클러스터 값을 'all'로 초기화 -->
+      <option value="all" {% if selected_cluster == 'all' %}selected{% endif %}>전체</option>
+      {% for c in clusters %}
+        <option value="{{ c }}" {% if selected_cluster == c %}selected{% endif %}>
+          Cluster {{ c }}
+        </option>
+      {% endfor %}
+    </select>
+  </form>
 </div>
 
 <div class="row">
@@ -23,7 +38,7 @@
     <label for="unit-select" class="form-label">Select Unit:</label>
     <select id="unit-select" class="form-select">
       {% for u in units %}
-        <option value="{{ u.unit }}">Unit {{ u.unit }}</option>
+        <option value="{{ u.unit }}" {% if loop.first %}selected{% endif %}>Unit {{ u.unit }}</option>
       {% endfor %}
     </select>
   </div>
@@ -31,48 +46,26 @@
     <div id="gauge-chart" style="height:300px;"></div>
     <div id="rul-timeline" style="height:200px; margin-top:20px;"></div>
     <div id="slider" style="margin-top:20px;"></div>
+    <label for="feature-select" class="form-label">엔진 변수 선택:</label>
+                                            <select id="feature-select" class="form-select mb-3">
+                                              <option value="s3">T30 (HPC 출구 온도)</option>
+                                              <option value="s7">P30 (HPC 출구 압력)</option>
+                                              <option value="s9">Nc (코어 속도)</option>
+                                              <option value="s17">htBleed (블리드 엔탈피)</option>
+                                            </select>
+
+<div class="mt-2">
+  <label for="feature-slider" class="form-label">해당 값 조정:</label>
+  <div id="feature-slider"></div>
+</div>
+
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-  const UNITS = {{ units|tojson }};
-  document.getElementById('fd-select').addEventListener('change', e => {
-    window.location.search = '?fd=' + e.target.value;
-  });
-
-  const unitSelect = document.getElementById('unit-select'),
-        gaugeDiv   = document.getElementById('gauge-chart'),
-        timelineDiv= document.getElementById('rul-timeline'),
-        sliderEl   = document.getElementById('slider');
-
-  function drawGauge(val) {
-    Plotly.newPlot(gaugeDiv, [{
-      type:'indicator', mode:'gauge+number',
-      value: val,
-      gauge:{ axis:{ range:[0,300] }, bar:{ color: val<50?'red':val<100?'yellow':'green' } }
-    }],{margin:{t:0,b:0}});
-  }
-
-  function drawTimeline(unit) {
-    let hist = UNITS.find(u=>u.unit===unit).RUL;
-    const x = Array.from({length:20},(_,i)=>i),
-          y = Array(20).fill(hist);
-    Plotly.newPlot(timelineDiv, [{x,y,mode:'lines'}], {xaxis:{title:'Step'}, yaxis:{title:'RUL'}});
-  }
-
-  noUiSlider.create(sliderEl,{ start:[0], range:{min:0,max:19}, step:1 });
-
-  const initUnit = UNITS[0].unit;
-  drawGauge(UNITS[0].RUL);
-  drawTimeline(initUnit);
-
-  unitSelect.addEventListener('change', e => {
-    const u = parseInt(e.target.value);
-    const rec = UNITS.find(x => x.unit === u);
-    drawGauge(rec.RUL);
-    drawTimeline(u);
-  });
-</script>
+  <script>
+    window.UNITS_DATA = {{ units|tojson }};
+    // (AJAX로 FD 변경 시 클러스터 재로딩이 필요하면 updateClusters() 호출)
+  </script>
 {% endblock %}
