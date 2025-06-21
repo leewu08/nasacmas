@@ -1,0 +1,15 @@
+<!-- partials/widget_sensors.html -->
+<div class="card">
+  <div class="card-header">🔧 센서 트렌드 (Unit {{ unit }})</div>
+  <div class="card-body">
+    <select id="sensorSelect"
+            class="form-select mb-2"
+            data-fd="{{ fd }}"
+            data-unit="{{ unit }}">
+      {% for sensor in ["torque", "rotor_speed", "i_3p_a", "i_3p_b", "i_3p_c"] %}
+        <option value="{{ sensor }}">{{ sensor }}</option>
+      {% endfor %}
+    </select>
+    <canvas id="sensorTrendChart"></canvas>
+  </div>
+</div>

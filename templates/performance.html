@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block body %}
+<h2>Model Performance</h2>
+<div id="perf-table"></div>
+<canvas id="perf-trend" width="600" height="300"></canvas>
+{% endblock %}
+{% block scripts %}
+<script>
+  const perfData = {{ performance_data|tojson }},
+        hist     = {{ history|tojson }};
+  new Tabulator('#perf-table',{
+    data: perfData, layout:'fitColumns',
+    columns:[
+      {title:'Scenario', field:'index'},
+      {title:'Val MSE', field:'val_mse', formatter:'number', formatterParams:{precision:2}},
+      {title:'Test MSE',field:'test_mse',formatter:'number', formatterParams:{precision:2}},
+    ]
+  });
+  const labels = Object.keys(hist),
+        trainL = labels.map(k=>hist[k].loss),
+        valL   = labels.map(k=>hist[k].val_loss);
+  new Chart(document.getElementById('perf-trend'),{
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Train Loss', data:trainL, fill:false },
+      { label:'Val Loss',   data:valL,   fill:false }
+    ]},
+    options:{scales:{y:{beginAtZero:false}}}
+  });
+</script>
+{% endblock %}

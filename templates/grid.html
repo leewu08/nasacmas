@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<h2 class="my-4 text-center">📦 Predictive Maintenance Dashboard</h2>
+<div class="grid-stack">
+  {% set layout = [
+    {'id': 'performance', 'w': 6, 'h': 3, 'x': 0, 'y': 0, 'tpl': 'partials/widget_performance.html'},
+    {'id': 'schedule', 'w': 6, 'h': 3, 'x': 6, 'y': 0, 'tpl': 'partials/widget_schedule.html'},
+    {'id': 'compare', 'w': 6, 'h': 3, 'x': 0, 'y': 3, 'tpl': 'partials/widget_compare.html'},
+    {'id': 'sensors', 'w': 6, 'h': 3, 'x': 6, 'y': 3, 'tpl': 'partials/widget_sensors.html'},
+    {'id': 'explain', 'w': 6, 'h': 3, 'x': 0, 'y': 6, 'tpl': 'partials/widget_explain.html'}
+  ] %}
+
+  {% for widget in layout %}
+  <div class="grid-stack-item"
+       gs-id="{{ widget.id }}"
+       gs-w="{{ widget.w }}"
+       gs-h="{{ widget.h }}"
+       gs-x="{{ widget.x }}"
+       gs-y="{{ widget.y }}">
+    <div class="grid-stack-item-content">
+      {% include widget.tpl %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@9.2.1/dist/gridstack.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/gridstack@9.2.1/dist/gridstack-all.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // ✅ 전역에 할당해서 디버깅 가능하게 함
+    window.grid = GridStack.init({
+      float: true,
+      cellHeight: 80,
+      disableOneColumnMode: false,
+      resizable: { handles: 'e, se, s, sw, w' },
+      draggable: true
+    });
+
+    const savedLayout = localStorage.getItem('user_layout');
+    if (savedLayout) {
+      try {
+        grid.removeAll();
+        grid.load(JSON.parse(savedLayout));
+        console.log('✅ 사용자 layout 적용 완료');
+      } catch (e) {
+        console.warn('❌ layout 적용 실패:', e);
+      }
+    }
+
+    grid.on('change', function (e, items) {
+      const layout = grid.save();
+      localStorage.setItem('user_layout', JSON.stringify(layout));
+      console.log("💾 layout 저장됨:", layout);
+    });
+
+    // ✅ 디버깅용 출력
+    console.log("📦 GridStack initialized:", window.grid);
+  });
+</script>
+{% endblock %}

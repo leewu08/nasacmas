@@ -1,0 +1,11 @@
+<!-- partials/widget_schedule.html -->
+<div class="card">
+  <div class="card-header">🗓 일정 스케줄</div>
+  <div class="card-body">
+    <ul class="list-group">
+      {% for event in events %}
+        <li class="list-group-item">{{ event.title }} - {{ event.date }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>

@@ -1,0 +1,13 @@
+
+<!-- partials/widget_explain.html -->
+<div class="card">
+  <div class="card-header">🧠 SHAP 해석 결과</div>
+  <div class="card-body">
+    <!-- ✅ 수정된 버전 -->
+<ul class="list-group">
+  {% for feature, value in explain_list %}
+    <li class="list-group-item">{{ feature }}: {{ value|round(3) }}</li>
+  {% endfor %}
+</ul>
+  </div>
+</div>

@@ -1,0 +1,12 @@
+<!-- partials/widget_performance.html -->
+<div class="card">
+  <div class="card-header">📊 성능 메트릭</div>
+  <div class="card-body">
+    <ul class="list-group mb-3">
+      {% for item in performance_data[:5] %}
+        <li class="list-group-item">{{ item.unit }}: {{ item.value }}</li>
+      {% endfor %}
+    </ul>
+    <canvas id="performanceChart"></canvas>
+  </div>
+</div>

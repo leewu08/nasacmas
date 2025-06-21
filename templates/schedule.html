@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block body %}
+  <h2 class="my-4 text-center">Scheduler</h2>
+
+  <div class="mb-3 text-center">
+    <label for="unit-select" class="form-label">Unit 선택:</label>
+    <select id="unit-select" class="form-select d-inline w-auto">
+      <option value="all">전체</option>
+      {% for u in unit_ids %}
+        <option value="{{ u }}">{{ u }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div id="calendar" style="max-width:900px; margin:0 auto; height:700px;"></div>
+{% endblock %}
+
+{% block scripts %}
+  <!-- ✅ 이벤트를 전역 변수로 넘김 -->
+  <script>
+    window.UNIT_EVENTS = {{ events|tojson }};
+  </script>
+
+  <!-- ✅ 필터/등록용 스크립트 -->
+  <script src="{{ url_for('static', filename='js/schedule_unit.js') }}"></script>
+{% endblock %}
