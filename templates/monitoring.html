@@ -1,11 +1,13 @@
 {% extends "layout.html" %}
+
 {% block head_extra %}
   <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
 {% endblock %}
+
 {% block body %}
 <div class="d-flex align-items-center mb-4">
-  <h2 class="me-auto">Real-time RUL Monitoring (FD00{{ fd }})</h2>
+  <h2 class="me-auto">🩺 Real-time RUL Monitoring (FD00{{ fd }})</h2>
   <div>
     <label for="fd-select" class="form-label me-2">Scenario:</label>
     <select id="fd-select" class="form-select d-inline-block w-auto">
@@ -15,6 +17,7 @@
     </select>
   </div>
 </div>
+
 <div class="row">
   <div class="col-md-4">
     <label for="unit-select" class="form-label">Select Unit:</label>
@@ -31,33 +34,45 @@
   </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
 <script>
   const UNITS = {{ units|tojson }};
   document.getElementById('fd-select').addEventListener('change', e => {
     window.location.search = '?fd=' + e.target.value;
   });
+
   const unitSelect = document.getElementById('unit-select'),
         gaugeDiv   = document.getElementById('gauge-chart'),
         timelineDiv= document.getElementById('rul-timeline'),
         sliderEl   = document.getElementById('slider');
 
   function drawGauge(val) {
-    Plotly.newPlot(gaugeDiv, [{ type:'indicator', mode:'gauge+number',
-      value: val, gauge:{ axis:{ range:[0,300] }, bar:{ color: val<50?'red':val<100?'yellow':'green' } }
+    Plotly.newPlot(gaugeDiv, [{
+      type:'indicator', mode:'gauge+number',
+      value: val,
+      gauge:{ axis:{ range:[0,300] }, bar:{ color: val<50?'red':val<100?'yellow':'green' } }
     }],{margin:{t:0,b:0}});
   }
+
   function drawTimeline(unit) {
     let hist = UNITS.find(u=>u.unit===unit).RUL;
-    const x=Array.from({length:20},(_,i)=>i), y=Array(20).fill(hist);
-    Plotly.newPlot(timelineDiv, [{x,y,mode:'lines'}], {xaxis:{title:'Step'},yaxis:{title:'RUL'}});
+    const x = Array.from({length:20},(_,i)=>i),
+          y = Array(20).fill(hist);
+    Plotly.newPlot(timelineDiv, [{x,y,mode:'lines'}], {xaxis:{title:'Step'}, yaxis:{title:'RUL'}});
   }
+
   noUiSlider.create(sliderEl,{ start:[0], range:{min:0,max:19}, step:1 });
+
   const initUnit = UNITS[0].unit;
-  drawGauge(UNITS[0].RUL); drawTimeline(initUnit);
-  unitSelect.addEventListener('change', e=>{
-    const u=parseInt(e.target.value), rec=UNITS.find(x=>x.unit===u);
-    drawGauge(rec.RUL); drawTimeline(u);
+  drawGauge(UNITS[0].RUL);
+  drawTimeline(initUnit);
+
+  unitSelect.addEventListener('change', e => {
+    const u = parseInt(e.target.value);
+    const rec = UNITS.find(x => x.unit === u);
+    drawGauge(rec.RUL);
+    drawTimeline(u);
   });
 </script>
 {% endblock %}
