@@ -1,0 +1,11 @@
+# YAML, ENV 등 설정 파일은 항상 LF 줄바꿈으로 통일
+*.yml text eol=lf
+*.yaml text eol=lf
+*.env text eol=lf
+*.example text eol=lf
+
+# Python 파일도 LF로 고정 (선택)
+*.py text eol=lf
+
+# 쉘스크립트나 실행파일류 (있다면)
+*.sh text eol=lf
