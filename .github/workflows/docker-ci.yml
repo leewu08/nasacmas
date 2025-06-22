@@ -1,0 +1,41 @@
+name: 🔧 Docker CI – Flask App
+
+on:
+  push:
+    branches: [ main, feature/v2.5-dashboard-update ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: 🧪 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: ✅ Syntax check for app.py
+        run: |
+          python -m py_compile app.py
+
+      - name: 🐳 Build Docker Image
+        run: |
+          docker build -t cmaps-flask .
+
+      - name: 🚀 Run Docker Container
+        run: |
+          docker run -d -p 5000:5000 cmaps-flask
+
+      - name: 🧼 Clean up
+        run: |
+          docker stop $(docker ps -q) || true
