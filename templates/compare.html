@@ -1,22 +1,46 @@
 {% extends "layout.html" %}
+
 {% block body %}
-<h2>Prediction vs Actual</h2>
+<h2 class="mb-3">📊 Prediction vs Actual</h2>
+
+<!-- ✅ 시나리오 선택 드롭다운 -->
+<form method="get" class="mb-4">
+  <label for="fd-select" class="form-label me-2">시나리오 선택:</label>
+  <select id="fd-select" name="fd" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+    {% for i in [1,2,3,4] %}
+    <option value="{{ i }}" {% if i == fd %}selected{% endif %}>FD00{{ i }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+<!-- ✅ 플롯 영역 -->
 <div id="scatter-plot" style="height:400px;"></div>
 <div id="heatmap-plot" style="height:400px; margin-top:20px;"></div>
 {% endblock %}
+
 {% block scripts %}
 <script>
   const scatter = {{ scatter_data|safe }},
         heatmap = {{ heatmap_data|safe }};
-  Plotly.newPlot('scatter-plot',[
-    { x:scatter.map(r=>r.y_true), y:scatter.map(r=>r.y_pred), mode:'markers' },
-    { x:[0,350], y:[0,350], mode:'lines', line:{dash:'dash'} }
-  ],{xaxis:{title:'True RUL'}, yaxis:{title:'Pred RUL'}});
-  Plotly.newPlot('heatmap-plot',[{
-    x: heatmap.map(r=>r[0]),
+
+  // ▶ Scatter Plot
+  Plotly.newPlot('scatter-plot', [
+    { x: scatter.map(r => r.y_true), y: scatter.map(r => r.y_pred), mode: 'markers' },
+    { x: [0, 350], y: [0, 350], mode: 'lines', line: { dash: 'dash' } }
+  ], {
+    xaxis: { title: 'True RUL' },
+    yaxis: { title: 'Pred RUL' }
+  });
+
+  // ▶ Heatmap
+  Plotly.newPlot('heatmap-plot', [{
+    x: heatmap.map(r => r[0]),
     y: ['MAE'],
-    z: [heatmap.map(r=>r[1])],
-    type:'heatmap', colorscale:'RdBu'
-  }],{yaxis:{showticklabels:false}});
+    z: [heatmap.map(r => r[1])],
+    type: 'heatmap',
+    colorscale: 'RdBu'
+  }], {
+    yaxis: { showticklabels: false }
+  });
 </script>
 {% endblock %}

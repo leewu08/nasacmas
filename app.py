@@ -19,6 +19,8 @@ import seaborn as sns
 import pdfkit
 import joblib  # 또는 import pickle
 
+import uuid
+
 model = joblib.load(r'C:\Users\temp\nasa_cmas\cmaps\flask\data\model.pkl')
 # ── 비즈니스 로직은 model.py에 위임 ──
 from model import (
@@ -34,7 +36,12 @@ from model import (
     get_all_unit_ids,
     get_cluster_label,
     get_cluster_map,
-    get_units_by_cluster
+    get_units_by_cluster,
+    model,
+    scaler,
+    COLNAMES,
+    get_unit_ids_by_fd
+
 )
 
 app = Flask(__name__)
@@ -97,7 +104,7 @@ print(sensor_stats)
 input_keys = ['op1', 'op2', 'op3'] + [f's{i}' for i in range(1, 22)]  # 총 24개
 
 @app.route('/predict_rul', methods=['POST'])
-def predict_rul():
+def predict_rul_api():
     data = request.get_json()
     input_features = [data.get(k) for k in input_keys]
     input_array = np.array(input_features).reshape(1, -1)
@@ -109,17 +116,25 @@ def predict_rul():
     return jsonify({'rul': float(predicted)})
 
 # -----------------------------------------------------------------------------  
-# Route: Compare view
 @app.route('/compare')
 def compare():
     fd = int(request.args.get('fd', 1))
     df_te = test_dfs.get(fd, pd.DataFrame())
-    scatter = df_te[['unit','RUL']].assign(
-        y_true=df_te['RUL'], y_pred=df_te['RUL']
-    ).to_dict(orient='records')
-    heatmap = df_te.groupby('unit')\
-                   .apply(lambda g: np.mean(np.abs(g.RUL - g.RUL)))\
-                   .reset_index().values.tolist()
+    model_input_columns = COLNAMES[2:]
+
+    # 유닛별로 딱 1번씩만 예측
+    unit_ids = df_te['unit'].unique()
+    unit_pred_map = {unit: predict_rul(fd, int(unit)) for unit in unit_ids}
+
+    # 예측 결과 붙이기
+    df_te['y_true'] = df_te['RUL']
+    df_te['y_pred'] = df_te['unit'].map(unit_pred_map)
+
+    # 시각화용 데이터 구성
+    scatter = df_te[['unit', 'y_true', 'y_pred']].to_dict(orient='records')
+    df_te['error'] = np.abs(df_te['y_true'] - df_te['y_pred'])
+    heatmap = df_te.groupby('unit')['error'].mean().reset_index().values.tolist()
+
     return render_template(
         'compare.html',
         fd=fd,
@@ -173,24 +188,70 @@ def explain(unit):
 # Route: Scheduler UI
 @app.route('/schedule')
 def schedule():
-    # 🔧 unit ID 정수형으로 맞춰주기 (문자열 대비 필터 오작동 방지)
-    for evt in schedule_events:
-        if 'unit' in evt:
-            evt['unit'] = int(evt['unit'])
+    fd = request.args.get('fd', '1')
 
-    unit_ids = get_all_unit_ids()
+    if fd == 'all':
+        filtered_events = schedule_events
+        unit_ids = get_all_unit_ids()
+    else:
+        fd = int(fd)
+        filtered_events = [e for e in schedule_events if e.get('fd') == fd]
+        unit_ids = get_unit_ids_by_fd(fd)
+
     return render_template(
         'schedule.html',
-        events=schedule_events,
+        fd=fd,
+        events=filtered_events,
         unit_ids=unit_ids
     )
 
 @app.route('/schedule/create', methods=['POST'])
 def create_event():
     event = request.get_json()
+    event['fd'] = int(event.get('fd', 1))
+    event['unit'] = int(event.get('unit', 1))
+    event['id'] = str(uuid.uuid4())  # ✅ 유일한 ID 생성
+
     schedule_events.append(event)
-    json.dump(schedule_events, open(os.path.join(DATA_DIR,'schedule_events.json'),'w'))
-    return jsonify(success=True), 201
+
+    json.dump(schedule_events, open(os.path.join(DATA_DIR, 'schedule_events.json'), 'w'))
+    return jsonify(success=True, id=event['id']), 201  # ✅ 클라이언트에 id도 전달
+
+@app.route('/schedule/update', methods=['POST'])
+def update_event():
+    data = request.get_json()
+    target_id = data.get('id')
+    target_fd = int(data.get('fd'))
+
+    for evt in schedule_events:
+        if evt.get('id') == target_id and evt.get('fd') == target_fd:
+            evt.update({
+                'title': data.get('title'),
+                'start': data.get('start'),
+                'end': data.get('end'),
+                'fd': target_fd,
+                'unit': int(data.get('unit'))
+            })
+            break
+
+    json.dump(schedule_events, open(os.path.join(DATA_DIR, 'schedule_events.json'), 'w'))
+    return jsonify(success=True), 200
+
+
+@app.route('/schedule/delete', methods=['POST'])
+def delete_event():
+    data = request.get_json()
+    target_id = data.get('id')
+    target_fd = int(data.get('fd'))
+
+    global schedule_events
+    schedule_events = [
+        e for e in schedule_events
+        if not (e.get('id') == target_id and e.get('fd') == target_fd)
+    ]
+
+    json.dump(schedule_events, open(os.path.join(DATA_DIR, 'schedule_events.json'), 'w'))
+    return jsonify(success=True), 200
 
 # -----------------------------------------------------------------------------  
 # Route: Performance dashboard
@@ -258,9 +319,9 @@ def grid_dashboard():
         heatmap_data=json.dumps(heatmap),
         times=json.dumps(times),
         values=json.dumps(values),
-        feature_names=json.dumps(feature_names),
-        shap_values=json.dumps(shap_values),
 
+        feature_names=feature_names,
+        shap_values=shap_values,
         # PDF 리포트용
         predicted_rul=rul,
         status_grade=status,

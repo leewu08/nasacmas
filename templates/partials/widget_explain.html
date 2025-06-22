@@ -1,13 +1,31 @@
-
-<!-- partials/widget_explain.html -->
 <div class="card">
   <div class="card-header">🧠 SHAP 해석 결과</div>
   <div class="card-body">
-    <!-- ✅ 수정된 버전 -->
-<ul class="list-group">
-  {% for feature, value in explain_list %}
-    <li class="list-group-item">{{ feature }}: {{ value|round(3) }}</li>
-  {% endfor %}
-</ul>
+    <!-- SHAP Bar chart -->
+    <div id="shap-bar" style="height:400px;"></div>
+
+    <!-- 모달 트리거 -->
+    <button class="btn btn-secondary mt-3" data-bs-toggle="modal" data-bs-target="#forceModal">
+      Force Plot 보기
+    </button>
   </div>
 </div>
+
+<!-- Force Plot 모달 -->
+<div class="modal fade" id="forceModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">SHAP Force Plot</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="force-plot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SHAP 데이터 등록 -->
+<script>
+  window.SHAP_FEATURES = {{ feature_names | tojson | safe }};
+  window.SHAP_VALUES   = {{ shap_values   | tojson | safe }};
+</script>

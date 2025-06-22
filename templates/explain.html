@@ -2,15 +2,21 @@
 
 {% block body %}
 <h2>Explain Unit</h2>
+
+<!-- Unit Selector -->
 <div class="mb-3">
   <label for="unit-select" class="form-label">Select Unit:</label>
   <select id="unit-select" class="form-select" onchange="onUnitChange()">
     {% for u in units %}
-    <option value="{{ u }}" {% if u==unit %}selected{% endif %}>Unit {{ u }}</option>
+      <option value="{{ u }}" {% if u == unit %}selected{% endif %}>Unit {{ u }}</option>
     {% endfor %}
   </select>
 </div>
+
+<!-- SHAP Bar Chart -->
 <div id="shap-bar" style="height:400px;"></div>
+
+<!-- Force Plot Button & Modal -->
 <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#forceModal">Force Plot</button>
 <div class="modal fade" id="forceModal" tabindex="-1">
   <div class="modal-dialog modal-xl">
@@ -26,46 +32,15 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- 1. SHAP.js 라이브러리 (필수) -->
+<script src="https://cdn.jsdelivr.net/npm/shapjs@0.1.1/dist/shap.min.js"></script>
+
+<!-- 2. 전역 변수 등록 -->
 <script>
-  function onUnitChange() {
-    const u = document.getElementById('unit-select').value;
-    window.location.href = `/explain/${u}`;
-  }
-
-  // Debug logs
-  console.log("▶ feature_names:", {{ feature_names|tojson }});
-  console.log("▶ shap_values:",   {{ shap_values|tojson }});
-
-  const feat = {{ feature_names|tojson }},
-        vals = {{ shap_values|tojson }};
-
-  // Select top 20 features by absolute SHAP value
-  const indexed = vals.map((v,i) => [Math.abs(v), i]);
-  indexed.sort((a,b) => b[0] - a[0]);
-  const topN    = indexed.slice(0, 20).map(x => x[1]);
-  const topFeat = topN.map(i => feat[i]);
-  const topVals = topN.map(i => vals[i]);
-  console.log("▶ topFeat:", topFeat);
-  console.log("▶ topVals:", topVals);
-
-  // Plotly bar chart
-  Plotly.newPlot('shap-bar', [
-    {
-      x: topVals,
-      y: topFeat,
-      type: 'bar',
-      orientation: 'h'
-    }
-  ], { margin: { l: 200 } });
-
-  // Force Plot modal
-  $('#forceModal').on('shown.bs.modal', () => {
-    const expl = new shapjs.Decomposition({
-      values: vals,
-      features: feat,
-      plot_type: 'force'
-    });
-    expl.render('#force-plot');
-  });
+  window.SHAP_FEATURES = {{ feature_names | tojson | safe }};
+  window.SHAP_VALUES   = {{ shap_values | tojson | safe }};
 </script>
+
+<!-- 3. 설명용 스크립트 로드 -->
+<script src="{{ url_for('static', filename='js/explain.js') }}"></script>
 {% endblock %}

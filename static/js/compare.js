@@ -1,44 +1,48 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const calendarEl = document.getElementById('calendar');
-  const unitSelect = document.getElementById('unit-select');
-  const allEvents = window.UNIT_EVENTS || [];
+// static/js/compare.js
 
-  let calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth',
-    headerToolbar: {
-      left: 'prev,next today',
-      center: 'title',
-      right: 'dayGridMonth,timeGridWeek,timeGridDay'
+document.addEventListener('DOMContentLoaded', () => {
+  // 데이터 받기 (서버에서 window.*로 등록되어 있어야 함)
+  const scatter = window.SCATTER_DATA || [];
+  const heatmap = window.HEATMAP_DATA || [];
+
+  // ✅ Scatter plot (Prediction vs Actual)
+  Plotly.newPlot('scatter-plot', [
+    {
+      x: scatter.map(r => r.y_true),
+      y: scatter.map(r => r.y_pred),
+      mode: 'markers',
+      name: 'Prediction',
+      marker: { color: 'dodgerblue', size: 6 }
     },
-    events: allEvents,
-    selectable: true,
-    select(info) {
-      const title = prompt('일정 제목 입력:');
-      const selectedUnit = unitSelect.value;
-      if (title && selectedUnit !== "all") {
-        const evt = { title, start: info.startStr, unit: parseInt(selectedUnit) };
-        fetch(`/schedule/${evt.unit}/create`, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(evt)
-        }).then(() => {
-          calendar.addEvent(evt);
-        });
-      } else {
-        alert("unit을 먼저 선택하세요!");
-      }
-      calendar.unselect();
+    {
+      x: [0, 350],
+      y: [0, 350],
+      mode: 'lines',
+      name: 'Ideal',
+      line: { dash: 'dash', color: 'orange' }
     }
+  ], {
+    xaxis: { title: 'True RUL' },
+    yaxis: { title: 'Predicted RUL' },
+    margin: { t: 40 }
   });
 
-  calendar.render();
+  // ✅ Heatmap (MAE per unit)
+  const unitIds = heatmap.map(r => r[0]);
+  const maeVals = heatmap.map(r => r[1]);
 
-  unitSelect.addEventListener('change', e => {
-    const selected = e.target.value;
-    const filtered = selected === "all"
-      ? allEvents
-      : allEvents.filter(e => e.unit == selected);
-    calendar.removeAllEvents();
-    calendar.addEventSource(filtered);
+  const hasValid = maeVals.some(v => v !== 0 && !isNaN(v));
+  const zvals = hasValid ? [maeVals] : [[0.001]];
+
+  Plotly.newPlot('heatmap-plot', [{
+    x: hasValid ? unitIds : ['No Data'],
+    y: ['MAE'],
+    z: zvals,
+    type: 'heatmap',
+    colorscale: 'RdBu',
+    showscale: true
+  }], {
+    yaxis: { showticklabels: false },
+    margin: { t: 30 }
   });
 });

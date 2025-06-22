@@ -190,6 +190,23 @@ def get_all_unit_ids():
             unit_set.add(evt['unit'])
 
     return sorted(unit_set)
+
+def get_unit_ids_by_fd(fd):
+    test_dfs = load_dataframes()[1]
+    df = test_dfs.get(fd, pd.DataFrame())
+    return sorted(df['unit'].unique()) if not df.empty else []
+
+# def get_unit_ids_by_fd(fd):
+#     """
+#     주어진 fd 시나리오에 등장한 unit ID만 반환.
+#     """
+#     _, test_dfs = load_dataframes()
+#     df = test_dfs.get(fd, pd.DataFrame())
+#     return sorted(df['unit'].unique().tolist())
+
+
+
+
 #------------------------클러스터연동----
 
 _cluster_path = os.path.join(DATA_DIR, 'cluster_labels.csv')

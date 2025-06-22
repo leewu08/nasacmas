@@ -2,6 +2,18 @@
 
 {% block body %}
 <h2>Sensor Trends & Anomalies (FD={{ fd }}, Unit={{ unit }})</h2>
+
+<!-- ✅ FD 시나리오 선택 드롭다운 -->
+<div class="mb-3">
+  <label for="fd-select" class="form-label">Select FD Scenario:</label>
+  <select id="fd-select" class="form-select d-inline-block w-auto me-3" onchange="onFdChange()">
+    {% for i in [1,2,3,4] %}
+    <option value="{{ i }}" {% if i==fd %}selected{% endif %}>FD00{{ i }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<!-- ✅ 유닛 선택 -->
 <div class="mb-3">
   <label for="unit-select" class="form-label">Select Unit:</label>
   <select id="unit-select" class="form-select" onchange="onUnitChange()">
@@ -10,6 +22,8 @@
     {% endfor %}
   </select>
 </div>
+
+<!-- ✅ 센서 멀티 선택 -->
 <div class="row mb-3">
   <div class="col-md-6">
     <label for="sensor-select" class="form-label">Select Sensors:</label>
@@ -18,22 +32,29 @@
     </select>
   </div>
 </div>
+
+<!-- ✅ 차트 영역 -->
 <div id="sensor-chart" style="height: 500px;"></div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  const fd   = {{ fd }},
-        unit = {{ unit }};
+  let fd   = {{ fd }};
+  let unit = {{ unit }};
 
-  function onUnitChange() {
-    const sel = document.getElementById('unit-select');
-    const newUnit = sel.value;
-    window.location.href = `/sensors/view?fd=${fd}&unit=${newUnit}`;
+  function onFdChange() {
+    const newFd = document.getElementById('fd-select').value;
+    // 유닛은 초기값 1로 바꾸거나 유지 가능
+    window.location.href = `/sensors/view?fd=${newFd}&unit=1`;
   }
 
-  // 렌더링 함수: 선택된 센서만 차트에 그림
-  function renderChart(data) {
+  function onUnitChange() {
+    const newUnit = document.getElementById('unit-select').value;
+    const curFd   = document.getElementById('fd-select').value;
+    window.location.href = `/sensors/view?fd=${curFd}&unit=${newUnit}`;
+  }
+
+  function renderChart() {
     const sel = document.getElementById('sensor-select');
     const selected = Array.from(sel.selectedOptions).map(o => o.value);
     const times = window.sensorData.time;
@@ -44,16 +65,15 @@
       name: name,
       mode: 'lines'
     }));
-    const layout = {
+    Plotly.newPlot('sensor-chart', traces, {
       title: `FD${fd} Unit ${unit} Sensor Trends`,
       xaxis: { title: 'Time' },
       yaxis: { title: 'Sensor Value' },
       height: 500
-    };
-    Plotly.newPlot('sensor-chart', traces, layout);
+    });
   }
 
-  // 데이터 로드 및 초기화
+  // 센서 데이터 fetch + 초기화
   fetch(`/sensors?fd=${fd}&unit=${unit}`)
     .then(res => res.json())
     .then(data => {

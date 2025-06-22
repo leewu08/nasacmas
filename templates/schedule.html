@@ -1,9 +1,21 @@
 {% extends "layout.html" %}
 
 {% block body %}
-  <h2 class="my-4 text-center">Scheduler</h2>
+<h2 class="my-4 text-center">📅 Maintenance Scheduler</h2>
 
-  <div class="mb-3 text-center">
+<!-- ✅ FD + Unit 선택 영역 -->
+<div class="d-flex justify-content-center align-items-center mb-3 gap-3">
+  <div>
+    <label for="fd-select" class="form-label">FD 시나리오:</label>
+    <select id="fd-select" class="form-select d-inline w-auto" onchange="onFdChange()">
+      <option value="all" {% if fd == 'all' %}selected{% endif %}>전체</option>
+      {% for i in [1, 2, 3, 4] %}
+        <option value="{{ i }}" {% if i == fd %}selected{% endif %}>FD00{{ i }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
     <label for="unit-select" class="form-label">Unit 선택:</label>
     <select id="unit-select" class="form-select d-inline w-auto">
       <option value="all">전체</option>
@@ -12,16 +24,26 @@
       {% endfor %}
     </select>
   </div>
+</div>
 
-  <div id="calendar" style="max-width:900px; margin:0 auto; height:700px;"></div>
+<!-- 📅 캘린더 표시 -->
+<div id="calendar" style="max-width:900px; margin:0 auto; height:700px;"></div>
 {% endblock %}
 
 {% block scripts %}
-  <!-- ✅ 이벤트를 전역 변수로 넘김 -->
-  <script>
-    window.UNIT_EVENTS = {{ events|tojson }};
-  </script>
+<!-- 🔁 선택 시 URL 이동용 -->
+<script>
+  function onFdChange() {
+    const fd = document.getElementById('fd-select').value;
+    window.location.href = `/schedule?fd=${fd}`;
+  }
+</script>
 
-  <!-- ✅ 필터/등록용 스크립트 -->
-  <script src="{{ url_for('static', filename='js/schedule_unit.js') }}"></script>
+<!-- 📦 서버에서 전달된 이벤트 리스트 -->
+<script>
+  window.UNIT_EVENTS = {{ events | tojson }};
+</script>
+
+<!-- 📅 캘린더 동작 로직 (Create/Update/Delete 포함) -->
+<script src="{{ url_for('static', filename='js/schedule_fd_unit.js') }}"></script>
 {% endblock %}
