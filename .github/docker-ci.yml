@@ -2,7 +2,7 @@ name: 🔧 Docker CI – Flask App
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/v2.5-dashboard-update ]
   pull_request:
     branches: [ main ]
 
@@ -21,7 +21,7 @@ jobs:
 
       - name: 🧪 Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: ✅ Syntax check for app.py
